@@ -28,6 +28,29 @@ Threads Graph API 沒有任何「免登入公開抓留言」的端點,即使是�
 
 > 不要把 token 給別人。本工具連後端都沒有,server 完全看不到你的 token。
 
+### 用 CLI 一鍵拿 token(推薦)
+
+不熟 Graph API Explorer?直接用 repo 內建的 CLI:
+
+```bash
+THREADS_APP_ID=123456789012345 THREADS_APP_SECRET=abc... \
+  node scripts/get-threads-token.mjs
+```
+
+CLI 會:
+1. 印出 OAuth 授權 URL → 你在瀏覽器打開、登入 Threads、按「允許」
+2. Threads 跳回 `https://wwwthreads.com/oauth/redirect?code=…` → 你把整個 URL 貼回 CLI
+3. CLI 用 App Secret 自動換 Short-lived → Long-lived(60 天)
+4. 印出 Long-lived token,你貼到 web app 的「儲存並驗證」
+
+> ⚠ `THREADS_APP_SECRET` 不要 commit 到 git。用環境變數,不要寫在命令列歷史。
+
+跑測試確認 CLI 正確:
+```bash
+node scripts/get-threads-token.test.mjs   # 邏輯單元測試
+node scripts/get-threads-token.e2e.mjs     # 端到端(monkey-patch fetch,跑完整 OAuth 流程)
+```
+
 ## 本地開發
 
 ```bash
