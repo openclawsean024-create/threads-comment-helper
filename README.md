@@ -44,6 +44,37 @@ npx vercel deploy --prod --yes --token $VERCEL_TOKEN
 
 (VERCEL_TOKEN 在 [Vercel Account Settings → Tokens](https://vercel.com/account/tokens) 產生。)
 
+## 端到端驗證 SOP(30 秒)
+
+部署後到 `https://threads-comment-helper.vercel.app/` 跑一次:
+
+1. **貼一個公開 Threads 貼文 URL** — 例如 https://www.threads.net/@threads/post/DQK6QDCqDeN
+2. **貼你的 Long-lived Threads Access Token**(見上節)
+3. **按「儲存並驗證」** — 應顯示「已連線 · @你的帳號」
+4. **抽幾位設成 1**、加或不加排除關鍵字
+5. **「下一步:開始抽籤 →」 → 「開始抽籤」**
+6. **確認中獎者卡片**: 顯示頭貼 + @username + 留言內容
+7. **F12 → Console → 0 error**
+
+如果中獎者卡片**沒出現**,先看卡片區上方的紅色 alert 條(顯示 Threads API 錯誤訊息,例如 401 = token 沒 `threads_read_replies` scope、190 = token 過期)。
+
+## Lighthouse(已驗證 2026-08-10)
+
+| 模式 | Performance | FCP | LCP | TBT | CLS |
+|---|---|---|---|---|---|
+| Mobile | **99** | 1.1s | 2.0s | 0ms | 0 |
+| Desktop | **90** | 1.1s | 1.9s | 0ms | 0 |
+
+跑法:
+```bash
+CHROME_PATH="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+npx lighthouse https://threads-comment-helper.vercel.app/ \
+  --only-categories=performance \
+  --form-factor=mobile --throttling-method=simulate \
+  --chrome-flags="--headless=new --no-sandbox" \
+  --output=json --output-path=./lh-mobile.json --quiet
+```
+
 ## 架構
 
 ```
