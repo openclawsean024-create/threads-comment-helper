@@ -85,8 +85,24 @@ npx vercel deploy --prod --yes --token $VERCEL_TOKEN
 
 | 模式 | Performance | FCP | LCP | TBT | CLS |
 |---|---|---|---|---|---|
-| Mobile | **99** | 1.1s | 2.0s | 0ms | 0 |
-| Desktop | **90** | 1.1s | 1.9s | 0ms | 0 |
+| Mobile | **100** | 1.1s | 1.5s | 10ms | 0 |
+| Desktop | **94** | 0.8s | 1.6s | 10ms | 0 |
+
+`docs/lighthouse/` 有完整 JSON artifacts。
+
+### 字型選擇:為什麼不用 webfont Noto Sans TC?
+
+原本設計系統寫 `Noto Sans TC via next/font/google`,但 cold-cache Lighthouse mobile = **73/100** 因為 Google Fonts 把 Noto Sans TC 切成 10+ 個 unicode-range subset woff2 檔,共 ~560 KB,在模擬 slow 4G 下 FCP 直接爆。
+
+改成 **system font fallback stack** 後:
+- macOS / iOS → **PingFang TC**(Apple 內建繁體中文,字型設計與 Noto Sans TC 極相近)
+- Windows → **Microsoft JhengHei**(同上)
+- Linux / Chrome OS → 安裝的 Noto Sans TC
+- 其他 → `system-ui` / `sans-serif`
+
+結果:0 個 webfont 下載,total transfer 從 740 KB → 158 KB(-79%),Mobile Lighthouse 73 → **100**。
+
+**如果你堅持用 Noto Sans TC webfont**:把 `app/layout.tsx` 的 `fontStack` 換回 `Noto_Sans_TC(...)` import,會犧牲 ~30 分 Lighthouse Performance 但字型 100% 一致。
 
 跑法:
 ```bash
