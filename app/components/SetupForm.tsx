@@ -36,6 +36,30 @@ export function SetupForm({
     setSavedToken(getToken());
     const persisted = getSettings();
     setSettings(persisted);
+    // Auto-import token from ?threads_token=... deep link (CLI integration).
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const incoming = params.get("threads_token");
+      if (incoming && incoming.length >= 16) {
+        persistToken(incoming);
+        setSavedToken(incoming);
+        setTokenStatus("checking");
+        setTokenMessage("從 CLI deep-link 匯入,驗證中…");
+        validateToken(incoming)
+          .then((me) => {
+            setTokenStatus("ok");
+            setTokenMessage(`已連線 · @${me.username ?? me.id}`);
+          })
+          .catch((err) => {
+            setTokenStatus("bad");
+            setTokenMessage(err instanceof Error ? err.message : "驗證失敗");
+          });
+        // Strip token from URL so it doesn't land in browser history or share links.
+        const cleaned = new URL(window.location.href);
+        cleaned.searchParams.delete("threads_token");
+        window.history.replaceState({}, "", cleaned.toString());
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

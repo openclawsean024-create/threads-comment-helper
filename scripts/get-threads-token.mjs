@@ -175,8 +175,19 @@ async function main() {
     log(longToken);
     log("━".repeat(64));
     log("");
+
+    // Deep-link: one-click import into the deployed web app.
+    // The web app reads ?threads_token=... on mount, stores it in localStorage,
+    // and strips it from the URL so it doesn't end up in browser history.
+    const deepLink = new URL("https://threads-comment-helper.vercel.app/");
+    deepLink.searchParams.set("threads_token", longToken);
+    log("🔗 一鍵開啟 Comment Flow(自動填 token,請在私人瀏覽器視窗開):");
+    log("");
+    log(deepLink.toString());
+    log("");
     log("⚠  這串 token 等同密碼 — 不要 commit 到 git、不要貼到公開地方。");
     log("   存進 localStorage 後,這個 CLI 輸出就沒用了。");
+    log("   Deep-link URL 也包含 token,不要分享出去。");
   } catch (e) {
     err(`未預期錯誤: ${e?.message || e}`);
     exit(1);

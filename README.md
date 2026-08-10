@@ -42,8 +42,10 @@ CLI 會:
 2. Threads 跳回 `https://wwwthreads.com/oauth/redirect?code=…` → 你把整個 URL 貼回 CLI
 3. CLI 用 App Secret 自動換 Short-lived → Long-lived(60 天)
 4. 印出 Long-lived token,你貼到 web app 的「儲存並驗證」
+5. **印出 deep-link URL**(包含 token 的 query string)— 在**私人瀏覽器視窗**點下去,web app 自動存進 localStorage 並 strip URL(不進 browser history)
 
 > ⚠ `THREADS_APP_SECRET` 不要 commit 到 git。用環境變數,不要寫在命令列歷史。
+> ⚠ Deep-link URL 包含 token,等同密碼 — 不要分享、不要貼到公開地方。
 
 跑測試確認 CLI 正確:
 ```bash

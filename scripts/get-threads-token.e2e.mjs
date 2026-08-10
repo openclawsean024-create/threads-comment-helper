@@ -93,10 +93,13 @@ assert.ok(stdout.includes("client_id=123456789012345"), "should include app id")
 assert.ok(stdout.includes("scope=threads_basic%2Cthreads_read_replies") || stdout.includes("scope=threads_basic,threads_read_replies"), "should include scopes");
 assert.ok(stdout.includes("LONG_def456_uvw_super_long_token"), "should print long token");
 assert.ok(stdout.includes("@sean_oauth_test"), "should print verified username");
+assert.ok(stdout.includes("threads-comment-helper.vercel.app"), "should print deep link");
+assert.ok(stdout.includes("threads_token=LONG_def456_uvw_super_long_token"), "deep link should embed long token");
 assert.ok(stderr.includes("THREADS_APP_ID") === false || stderr.includes("請輸入") === false, "should read from env, not prompt");
 
-console.log("\n✓ CLI exit 0");
+console.log("\\n✓ CLI exit 0");
 console.log("✓ Auth URL printed");
 console.log("✓ Long-lived token printed");
 console.log("✓ Username verified");
+console.log("✓ Deep-link URL printed with embedded token");
 console.log("✓ All env vars read from environment (no prompt)");
