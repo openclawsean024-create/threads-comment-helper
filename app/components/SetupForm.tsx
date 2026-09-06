@@ -60,7 +60,6 @@ export function SetupForm({
         window.history.replaceState({}, "", cleaned.toString());
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function commitSettings(next: DrawSettings) {

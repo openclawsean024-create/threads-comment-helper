@@ -6,7 +6,6 @@ import { SetupForm } from "./components/SetupForm";
 import { ResultsView } from "./components/ResultsView";
 import {
   type DrawSettings,
-  getSettings,
   setSettings as persistSettings,
 } from "@/lib/storage";
 import {

@@ -59,7 +59,6 @@ export function ResultsView({
               <div className="relative flex items-start gap-4">
                 <div className="relative shrink-0">
                   {w.avatarUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={w.avatarUrl}
                       alt={`@${w.username} 頭像`}
