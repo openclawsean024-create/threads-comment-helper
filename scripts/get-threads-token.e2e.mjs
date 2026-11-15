@@ -59,13 +59,15 @@ await import(${JSON.stringify("file://" + scriptPath)});
 `);
 
 // Feed stdin with a fake redirect URL.
-const fakeStdin = "https://wwwthreads.com/oauth/redirect?code=FAKE_AUTH_CODE&state=comment-flow-helper\n";
+const REDIRECT = "https://example.com/oauth/redirect";
+const fakeStdin = `${REDIRECT}?code=FAKE_AUTH_CODE&state=comment-flow-helper\n`;
 
 const child = spawn(process.execPath, [wrapper], {
   env: {
     ...process.env,
     THREADS_APP_ID: "123456789012345",
     THREADS_APP_SECRET: "fakesecretlongenough",
+    THREADS_REDIRECT_URI: REDIRECT,
   },
   stdio: ["pipe", "pipe", "pipe"],
 });
@@ -88,7 +90,9 @@ console.log("--- exit code:", exitCode, "---");
 
 // Assertions
 assert.equal(exitCode, 0, `CLI should exit 0, got ${exitCode}`);
-assert.ok(stdout.includes("wwwthreads.com/oauth/authorize"), "should print auth URL");
+assert.ok(stdout.includes("https://threads.com/oauth/authorize?"), "should print the official auth URL");
+assert.ok(!stdout.includes("wwwthreads"), "must not print the typo domain");
+assert.ok(stdout.includes("redirect_uri=" + encodeURIComponent(REDIRECT)), "should use THREADS_REDIRECT_URI");
 assert.ok(stdout.includes("client_id=123456789012345"), "should include app id");
 assert.ok(stdout.includes("scope=threads_basic%2Cthreads_read_replies") || stdout.includes("scope=threads_basic,threads_read_replies"), "should include scopes");
 assert.ok(stdout.includes("LONG_def456_uvw_super_long_token"), "should print long token");
@@ -97,9 +101,21 @@ assert.ok(stdout.includes("threads-comment-helper.vercel.app"), "should print de
 assert.ok(stdout.includes("threads_token=LONG_def456_uvw_super_long_token"), "deep link should embed long token");
 assert.ok(stderr.includes("THREADS_APP_ID") === false || stderr.includes("請輸入") === false, "should read from env, not prompt");
 
+// Without THREADS_REDIRECT_URI the CLI must fail fast instead of falling back to any default domain.
+const env2 = { ...process.env, THREADS_APP_ID: "123456789012345", THREADS_APP_SECRET: "fakesecretlongenough" };
+delete env2.THREADS_REDIRECT_URI;
+const child2 = spawn(process.execPath, [scriptPath], { env: env2, stdio: ["pipe", "pipe", "pipe"] });
+let stderr2 = "";
+child2.stderr.on("data", (d) => (stderr2 += d.toString()));
+child2.stdin.end();
+const exit2 = await new Promise((resolve) => child2.on("close", resolve));
+assert.equal(exit2, 1, `CLI should exit 1 without THREADS_REDIRECT_URI, got ${exit2}`);
+assert.ok(stderr2.includes("THREADS_REDIRECT_URI"), "should explain the missing THREADS_REDIRECT_URI");
+
 console.log("\\n✓ CLI exit 0");
 console.log("✓ Auth URL printed");
 console.log("✓ Long-lived token printed");
 console.log("✓ Username verified");
 console.log("✓ Deep-link URL printed with embedded token");
 console.log("✓ All env vars read from environment (no prompt)");
+console.log("✓ Missing THREADS_REDIRECT_URI exits 1");

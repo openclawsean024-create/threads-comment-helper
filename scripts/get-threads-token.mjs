@@ -5,33 +5,37 @@
  * 一鍵拿 Threads Long-lived User Access Token,給 Comment Flow (Threads 留言抽籤) 用。
  *
  * 流程:
- *   1. 讀 THREADS_APP_ID + THREADS_APP_SECRET(環境變數或互動式輸入)
- *   2. 印出 OAuth 授權 URL,Sean 在瀏覽器打開、登入 Threads、按「允許」
- *   3. Threads 會 redirect 回 https://wwwthreads.com/oauth/redirect?code=XXXXX
- *      (需要 Threads App 設定裡有這個 Redirect URI)
+ *   1. 讀 THREADS_APP_ID + THREADS_APP_SECRET(環境變數或互動式輸入),
+ *      以及 THREADS_REDIRECT_URI(必填,必須是你自己控制的 https 網址)
+ *   2. 印出 OAuth 授權 URL(Meta 官方 https://threads.com/oauth/authorize),
+ *      Sean 在瀏覽器打開、登入 Threads、按「允許」
+ *   3. Threads 會 redirect 回 THREADS_REDIRECT_URI?code=XXXXX
+ *      (需要 Threads App 設定裡有完全相同的 Redirect URI)
  *   4. Sean 把整個 redirect URL(或只 code= 後面那段)貼回來
  *   5. 腳本用 App Secret 換 Short-lived → Long-lived token
  *   6. 印出 long-lived token,Sean 貼進 web app 的「儲存並驗證」欄位
  *
  * Usage:
  *   THREADS_APP_ID=1234567890 THREADS_APP_SECRET=abc... \
+ *   THREADS_REDIRECT_URI=https://your-domain.example/oauth/redirect \
  *     node scripts/get-threads-token.mjs
  *
- * 或互動輸入(不建議 — secret 會進 shell history):
- *   node scripts/get-threads-token.mjs
+ * 或互動輸入 App ID / Secret(不建議 — secret 會進 shell history),THREADS_REDIRECT_URI 仍必須用環境變數:
+ *   THREADS_REDIRECT_URI=https://your-domain.example/oauth/redirect node scripts/get-threads-token.mjs
  *
  * 必備的 Threads App 設定:
  *   - Products → Threads → 啟用
- *   - Threads → API setup → Redirect URI: https://wwwthreads.com/oauth/redirect
+ *   - Threads → API setup → Redirect URI: 與 THREADS_REDIRECT_URI 完全相同的網址
+ *     (必須是你自己控制的網域;授權碼會被送到這個網址)
  *   - 權限 scope: threads_basic, threads_read_replies
  */
 
 import { createInterface } from "node:readline/promises";
 import { stdin, stdout, stderr, exit } from "node:process";
 
-const REDIRECT_URI = "https://wwwthreads.com/oauth/redirect";
 const SCOPES = ["threads_basic", "threads_read_replies"];
-const AUTH_BASE = "https://wwwthreads.com/oauth/authorize";
+// Meta 官方授權視窗,見 https://developers.facebook.com/docs/threads/get-started/get-access-tokens-and-permissions
+const AUTH_BASE = "https://threads.com/oauth/authorize";
 const TOKEN_BASE = "https://graph.threads.net/oauth/access_token";
 
 function log(msg) {
@@ -43,6 +47,29 @@ function warn(msg) {
 function err(msg) {
   stderr.write("✗ " + msg + "\n");
 }
+
+// Redirect URI 不提供預設值:授權碼會被送到這個網址,必須由使用者明確指定自己控制的 https 網域。
+function readRedirectUri() {
+  const raw = (process.env.THREADS_REDIRECT_URI || "").trim();
+  if (!raw) {
+    err("缺少 THREADS_REDIRECT_URI。請設成你在 Threads App 登記、且由你自己控制的 https 網址。");
+    exit(1);
+  }
+  let parsed;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    err(`THREADS_REDIRECT_URI 不是合法網址: ${raw}`);
+    exit(1);
+  }
+  if (parsed.protocol !== "https:") {
+    err(`THREADS_REDIRECT_URI 必須是 https 網址: ${raw}`);
+    exit(1);
+  }
+  return raw;
+}
+
+const REDIRECT_URI = readRedirectUri();
 
 async function readEnvOrPrompt(name, rl) {
   const fromEnv = process.env[name];

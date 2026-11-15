@@ -17,10 +17,11 @@ Threads Graph API 沒有任何「免登入公開抓留言」的端點,即使是�
 ## 如何取得 Threads Access Token
 
 1. 到 [developers.facebook.com](https://developers.facebook.com) → 註冊/登入 → 建立一個 App(類型選 **Business** 或 **Other**)→ 啟用 **Threads** 產品。
-2. 在 Threads API 設定頁取得 **App ID / Secret**,把以下網址貼到「授權重新導向 URI」:
+2. 在 Threads API 設定頁取得 **App ID / Secret**,在「授權重新導向 URI」填一個**你自己控制的 https 網址**,例如:
    ```
-   https://wwwthreads.com/oauth/redirect
+   https://your-domain.example/oauth/redirect
    ```
+   > ⚠ 不要填不屬於你的網域。授權碼會被送到這個網址。
 3. 用 [Threads 帳號工具](https://www.threads.com/threads/settings/accounts_center) 或 [Graph API Explorer](https://developers.facebook.com/tools/explorer/) 走 OAuth flow,需要的 scope:
    - `threads_basic`
    - `threads_read_replies`
@@ -34,12 +35,15 @@ Threads Graph API 沒有任何「免登入公開抓留言」的端點,即使是�
 
 ```bash
 THREADS_APP_ID=123456789012345 THREADS_APP_SECRET=abc... \
+THREADS_REDIRECT_URI=https://your-domain.example/oauth/redirect \
   node scripts/get-threads-token.mjs
 ```
 
+`THREADS_REDIRECT_URI` 必填,要和 App 設定的重新導向 URI 完全相同;沒設定時 CLI 會直接結束,不會套用任何預設網域。
+
 CLI 會:
-1. 印出 OAuth 授權 URL → 你在瀏覽器打開、登入 Threads、按「允許」
-2. Threads 跳回 `https://wwwthreads.com/oauth/redirect?code=…` → 你把整個 URL 貼回 CLI
+1. 印出 Meta 官方 OAuth 授權 URL(`https://threads.com/oauth/authorize`)→ 你在瀏覽器打開、登入 Threads、按「允許」
+2. Threads 跳回 `THREADS_REDIRECT_URI?code=…` → 你把整個 URL 貼回 CLI
 3. CLI 用 App Secret 自動換 Short-lived → Long-lived(60 天)
 4. 印出 Long-lived token,你貼到 web app 的「儲存並驗證」
 5. **印出 deep-link URL**(包含 token 的 query string)— 在**私人瀏覽器視窗**點下去,web app 自動存進 localStorage 並 strip URL(不進 browser history)
