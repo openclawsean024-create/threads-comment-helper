@@ -64,8 +64,18 @@ const child = spawn(
 child.kill();
 
 // Simpler: parse the auth URL the script would build. Manually verify logic.
-const AUTH_BASE = "https://wwwthreads.com/oauth/authorize";
-const REDIRECT_URI = "https://wwwthreads.com/oauth/redirect";
+// The CLI must use Meta's official authorize domain and must not hard-code any redirect URI.
+const cliSource = readFileSync(new URL("./get-threads-token.mjs", import.meta.url), "utf8");
+const authMatch = cliSource.match(/const AUTH_BASE = "([^"]+)"/);
+assert.ok(authMatch, "CLI must define AUTH_BASE");
+const AUTH_BASE = authMatch[1];
+assert.equal(new URL(AUTH_BASE).hostname, "threads.com", "AUTH_BASE must use the official threads.com domain");
+assert.ok(!cliSource.includes("wwwthreads"), "CLI must not reference the typo domain wwwthreads.com");
+assert.ok(!/const REDIRECT_URI = "/.test(cliSource), "CLI must not hard-code a redirect URI");
+assert.ok(cliSource.includes("THREADS_REDIRECT_URI"), "CLI must read the redirect URI from THREADS_REDIRECT_URI");
+
+// Redirect URI is user-supplied; example.com is reserved for documentation.
+const REDIRECT_URI = "https://example.com/oauth/redirect";
 const SCOPES = ["threads_basic", "threads_read_replies"];
 
 const appId = "123456789012345";
@@ -79,10 +89,10 @@ assert.equal(u.searchParams.get("client_id"), appId);
 assert.equal(u.searchParams.get("redirect_uri"), REDIRECT_URI);
 assert.equal(u.searchParams.get("scope"), "threads_basic,threads_read_replies");
 assert.equal(u.searchParams.get("response_type"), "code");
-assert.ok(u.toString().includes("wwwthreads.com/oauth/authorize"));
+assert.ok(u.toString().startsWith("https://threads.com/oauth/authorize?"));
 
 // Verify redirect URL parsing handles both full URL and bare code
-const fullRedirect = "https://wwwthreads.com/oauth/redirect?code=ABC123&state=comment-flow-helper";
+const fullRedirect = "https://example.com/oauth/redirect?code=ABC123&state=comment-flow-helper";
 const u2 = new URL(fullRedirect);
 assert.equal(u2.searchParams.get("code"), "ABC123");
 assert.equal(u2.searchParams.get("state"), "comment-flow-helper");
@@ -94,6 +104,7 @@ assert.equal(bareCode, bareCode); // bare pass-through
 assert.ok(SCOPES.includes("threads_basic"));
 assert.ok(SCOPES.includes("threads_read_replies"));
 
+console.log("✓ AUTH_BASE uses official threads.com domain; no hard-coded redirect URI");
 console.log("✓ AUTH URL builder produces correct params");
 console.log("✓ redirect URL parsing handles full + bare forms");
 console.log("✓ scope list includes both required scopes");
